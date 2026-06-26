@@ -41,7 +41,7 @@ docker network create oc
 
 # ── Clone/update repos ──
 mkdir -p $REPO
-for repo in OC3 OC4 oc5 okapi; do
+for repo in OC3 OC4 oc5 oc6 okapi; do
   lower=$(echo $repo | tr '[:upper:]' '[:lower:]')
   if [ -d "$REPO/$lower/.git" ]; then
     (cd $REPO/$lower && git fetch origin && git checkout dev-hx && git pull origin dev-hx --ff-only) &
@@ -53,7 +53,7 @@ wait
 echo "Repos ready"
 
 # ── Create stack directories ──
-for s in dockge npm mariadb oc3 oc4 oc5 okapi; do mkdir -p $STACKS/$s; done
+for s in dockge npm mariadb oc3 oc4 oc5 oc6 okapi; do mkdir -p $STACKS/$s; done
 echo "$DBPASS" > $STACKS/mariadb/.dbpass
 chmod 600 $STACKS/mariadb/.dbpass
 
@@ -199,6 +199,29 @@ networks:
     external: true
 YAML
 
+cat > $STACKS/oc6/docker-compose.yml << YAML
+name: oc6
+services:
+  oc6:
+    image: oven/bun:1
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - ${REPO}/oc6:/app
+    command: sh -c "bun install --silent && exec bun run src/server.ts"
+    environment:
+      PORT: "3000"
+      DATABASE_URL: mysql://oc:${DBPASS}@db:3306/oc
+      NODE_ENV: development
+    expose:
+      - "3000"
+    networks:
+      - oc
+networks:
+  oc:
+    external: true
+YAML
+
 cat > $STACKS/okapi/docker-compose.yml << YAML
 name: okapi
 services:
@@ -301,7 +324,7 @@ echo "composer done"
 
 # ── Start all stacks ──
 echo "starting stacks..."
-for s in dockge npm mariadb oc3 oc4 oc5 okapi; do
+for s in dockge npm mariadb oc3 oc4 oc5 oc6 okapi; do
   (cd $STACKS/$s && docker compose up -d --quiet-pull 2>/dev/null)
   echo "  $s started"
 done
@@ -363,6 +386,7 @@ hosts = [
     ("oc3", "oc3.${DOMAIN}", 80),
     ("oc4", "oc4.${DOMAIN}", 80),
     ("oc5", "oc5.${DOMAIN}", 3000),
+    ("oc6", "oc6.${DOMAIN}", 3000),
     ("okapi", "okapi.${DOMAIN}", 80),
 ]
 for host, domain, port in hosts:
@@ -383,7 +407,7 @@ sleep 10
 # ── Final test ──
 echo ""
 echo "=== FINAL VERIFICATION ==="
-for h in oc3 oc4 oc5 okapi; do
+for h in oc3 oc4 oc5 oc6 okapi; do
   code=$(curl -sk -o /dev/null -w "%{http_code}" -H "Host: $h.$DOMAIN" http://localhost/)
   echo "  $h.$DOMAIN: HTTP $code"
 done

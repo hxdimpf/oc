@@ -30,6 +30,7 @@ nginx-proxy-manager :80 :443 :81 (admin)
     ├── oc3.baiti.net   →  oc3:80
     ├── oc4.baiti.net   →  oc4:80
     ├── oc5.baiti.net   →  oc5:3000
+    ├── oc6.baiti.net   →  oc6:3000
     └── okapi.baiti.net →  okapi:80
 
 dockge :5001 (stacks dashboard)
@@ -42,6 +43,7 @@ dockge :5001 (stacks dashboard)
 | OC3 | PHP 8.2, Smarty | 80 (internal) |
 | OC4 | PHP 8.4, Symfony 7.x | 80 (internal) |
 | OC5 | Node 22, Express | 3000 (internal) |
+| OC6 | Bun, TypeScript, Hono | 3000 (internal) |
 | OKAPI | PHP 8.2 | 80 (internal) |
 | MariaDB | 10.11 | none |
 | NPM | nginx proxy | 80, 443, 81 |

@@ -107,14 +107,14 @@
         dest: "{{ repo_base }}/{{ item | lower }}"
         version: "{{ branch }}"
         force: true
-      loop: [OC3, OC4, oc5, okapi]
+      loop: [OC3, OC4, oc5, oc6, okapi]
       register: git_clone
       retries: 3
       delay: 5
 
     - name: Set per-repo git identity
       shell: |
-        for r in OC3 OC4 oc5 okapi; do
+        for r in OC3 OC4 oc5 oc6 okapi; do
           lower=$(echo "$r" | tr '[:upper:]' '[:lower:]')
           git -C {{ repo_base }}/$lower config user.name "{{ git_user_name }}"
           git -C {{ repo_base }}/$lower config user.email "{{ git_user_email }}"
@@ -130,7 +130,7 @@
       file:
         path: "{{ stacks_base }}/{{ item }}"
         state: directory
-      loop: [dockge, npm, mariadb, oc3, oc4, oc5, okapi]
+      loop: [dockge, npm, mariadb, oc3, oc4, oc5, oc6, okapi]
 
     # ── Write compose files ─────────────────────────────
     - name: Dockge compose
@@ -260,6 +260,29 @@
               volumes:
                 - {{ repo_base }}/oc5:/app
               command: sh -c "npm install --silent && exec node app.js"
+              environment:
+                PORT: "3000"
+                DATABASE_URL: mysql://oc:{{ dbpass }}@db:3306/oc
+                NODE_ENV: development
+              expose: ["3000"]
+              networks: [oc]
+          networks:
+            oc:
+              external: true
+
+    - name: OC6 compose
+      copy:
+        dest: "{{ stacks_base }}/oc6/docker-compose.yml"
+        content: |
+          name: oc6
+          services:
+            oc6:
+              image: oven/bun:1
+              restart: unless-stopped
+              working_dir: /app
+              volumes:
+                - {{ repo_base }}/oc6:/app
+              command: sh -c "bun install --silent && exec bun run src/server.ts"
               environment:
                 PORT: "3000"
                 DATABASE_URL: mysql://oc:{{ dbpass }}@db:3306/oc
@@ -463,6 +486,11 @@
       args:
         chdir: "{{ stacks_base }}/oc5"
 
+    - name: Start OC6
+      command: docker compose up -d --quiet-pull
+      args:
+        chdir: "{{ stacks_base }}/oc6"
+
     - name: Start OKAPI
       command: docker compose up -d --quiet-pull
       args:
@@ -563,6 +591,7 @@
             ('oc3', 'oc3.{{ domain_suffix }}', 80),
             ('oc4', 'oc4.{{ domain_suffix }}', 80),
             ('oc5', 'oc5.{{ domain_suffix }}', 3000),
+            ('oc6', 'oc6.{{ domain_suffix }}', 3000),
             ('okapi', 'okapi.{{ domain_suffix }}', 80),
         ]
         for host, domain, port in hosts:
@@ -583,7 +612,7 @@
     # ── Verification ────────────────────────────────────
     - name: Test all services
       shell: |
-        for host in oc3 oc4 oc5 okapi; do
+        for host in oc3 oc4 oc5 oc6 okapi; do
           code=$(curl -sk -o /dev/null -w "%{http_code}" -H "Host: $host.{{ domain_suffix }}" http://localhost/)
           echo "$host: HTTP $code"
         done

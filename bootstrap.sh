@@ -18,6 +18,7 @@ set -euo pipefail
 #   http://oc3.SUFFIX
 #   http://oc4.SUFFIX
 #   http://oc5.SUFFIX
+#   http://oc6.SUFFIX
 #   http://okapi.SUFFIX
 #   http://oc3.SUFFIX:81   (NPM admin: admin@example.com / changeme)
 #   http://oc3.SUFFIX:5001 (Dockge)
@@ -44,6 +45,7 @@ REPO_DIR="/opt/repos"
 OC3_DOMAIN="oc3.$DOMAIN_SUFFIX"
 OC4_DOMAIN="oc4.$DOMAIN_SUFFIX"
 OC5_DOMAIN="oc5.$DOMAIN_SUFFIX"
+OC6_DOMAIN="oc6.$DOMAIN_SUFFIX"
 OKAPI_DOMAIN="okapi.$DOMAIN_SUFFIX"
 
 echo "============================================"
@@ -57,7 +59,7 @@ echo "============================================"
 
 mkdir -p "$REPO_DIR"
 
-for repo in OC3 OC4 oc5 okapi; do
+for repo in OC3 OC4 oc5 oc6 okapi; do
     dir="${REPO_DIR}/${repo,,}"
     lower=$(echo "$repo" | tr '[:upper:]' '[:lower:]')
 
@@ -105,7 +107,7 @@ echo "[network] oc ready"
 
 DBPASS=$(openssl rand -hex 16)
 STACKS=/opt/stacks
-sudo mkdir -p "$STACKS"/{npm,mariadb,oc3,oc4,oc5,okapi,dockge}
+sudo mkdir -p "$STACKS"/{npm,mariadb,oc3,oc4,oc5,oc6,okapi,dockge}
 
 echo "[stacks] writing compose files..."
 
@@ -207,6 +209,27 @@ services:
     working_dir: /app
     volumes: ["${REPO_DIR}/oc5:/app"]
     command: sh -c "npm install --silent && exec node app.js"
+    environment:
+      PORT: 3000
+      DATABASE_URL: mysql://oc:${DBPASS}@db:3306/oc
+      NODE_ENV: development
+    expose: ["3000"]
+    networks: [oc]
+networks:
+  oc:
+    external: true
+COMPOSE
+
+# oc6
+cat | sudo tee "$STACKS/oc6/docker-compose.yml" > /dev/null << COMPOSE
+name: oc6
+services:
+  oc6:
+    image: oven/bun:1
+    restart: unless-stopped
+    working_dir: /app
+    volumes: ["${REPO_DIR}/oc6:/app"]
+    command: sh -c "bun install --silent && exec bun run src/server.ts"
     environment:
       PORT: 3000
       DATABASE_URL: mysql://oc:${DBPASS}@db:3306/oc
@@ -344,7 +367,7 @@ sudo mkdir -p "$REPO_OKAPI/var/okapi" && sudo chmod -R 777 "$REPO_OKAPI/var"
 
 echo "[start] bringing up stacks..."
 
-for stack in dockge npm mariadb oc3 oc4 oc5 okapi; do
+for stack in dockge npm mariadb oc3 oc4 oc5 oc6 okapi; do
     echo "  starting $stack..."
     (cd "$STACKS/$stack" && sudo docker compose up -d --quiet-pull 2>&1) || true
 done
@@ -425,6 +448,7 @@ hosts = [
     ('oc3', '${OC3_DOMAIN}', 80),
     ('oc4', '${OC4_DOMAIN}', 80),
     ('oc5', '${OC5_DOMAIN}', 3000),
+    ('oc6', '${OC6_DOMAIN}', 3000),
     ('okapi', '${OKAPI_DOMAIN}', 80),
 ]
 for host, domain, port in hosts:
@@ -443,6 +467,7 @@ else
     echo "    $OC3_DOMAIN → oc3:80"
     echo "    $OC4_DOMAIN → oc4:80"
     echo "    $OC5_DOMAIN → oc5:3000"
+    echo "    $OC6_DOMAIN → oc6:3000"
     echo "    $OKAPI_DOMAIN → okapi:80"
 fi
 
@@ -457,7 +482,7 @@ echo " OC Dev Stack Ready"
 echo "============================================"
 echo ""
 echo "  Apps:"
-for host in oc3 oc4 oc5 okapi; do
+for host in oc3 oc4 oc5 oc6 okapi; do
     eval "domain=\$$(echo $host | tr '[:lower:]' '[:upper:]')_DOMAIN"
     code=$(curl -sk -o /dev/null -w "%{http_code}" -H "Host: $domain" http://localhost/ 2>/dev/null || echo "---")
     echo "    http://$domain  [$code]"
