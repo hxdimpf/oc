@@ -3,8 +3,9 @@
 # Usage: ./sync-js-to-oc4.sh [file.js ...]     (no args: every file in oc5/public/js)
 #
 # OC5 is the primary dev target for shared JS. OC4 serves the same files under
-# /_frontend/ and keeps coords.js in shared/ instead of lib/, so a plain cp breaks
-# OC4. This applies exactly those path differences and nothing else.
+# /_frontend/ (images stay at /images/ in both) and keeps coords.js in shared/
+# instead of lib/, so a plain cp breaks OC4. This applies exactly those path
+# differences and nothing else.
 
 set -euo pipefail
 
@@ -19,7 +20,6 @@ for f in "${FILES[@]}"; do
     f=$(basename "$f")
     sed -e "s#'/vendor/#'/_frontend/vendor/#g" \
         -e "s#'/css/#'/_frontend/css/#g" \
-        -e "s#\`/images/#\`/_frontend/images/#g" \
         -e "s#'\.\./lib/coords\.js'#'../shared/coords.js'#g" \
         "$SRC/$f" > "$DST/$f"
     echo "  $f"
