@@ -103,11 +103,11 @@
     # ── Clone repos ─────────────────────────────────────
     - name: Clone repository
       git:
-        repo: "https://github.com/{{ github_org }}/{{ item }}.git"
-        dest: "{{ repo_base }}/{{ item | lower }}"
+        repo: "https://github.com/{{ repo_orgs[item] | default(github_org) }}/{{ item }}.git"
+        dest: "{{ repo_base }}/{{ item }}"
         version: "{{ branch }}"
         force: true
-      loop: [OC3, OC4, oc5, oc6, okapi]
+      loop: [oc3, oc4, oc5, oc6, okapi]
       register: git_clone
       retries: 3
       delay: 5
@@ -116,12 +116,10 @@
       shell: |
         # repos are chowned to www-data by the app containers; root still has to pull
         git config --global --add safe.directory '*'
-        for r in OC3 OC4 oc5 oc6 okapi; do
-          lower=$(echo "$r" | tr '[:upper:]' '[:lower:]')
-          git -C {{ repo_base }}/$lower config user.name "{{ git_user_name }}"
-          git -C {{ repo_base }}/$lower config user.email "{{ git_user_email }}"
-          # origin stays the read-only https clone URL: the VM pulls, it never pushes
-          git -C {{ repo_base }}/$lower remote set-url origin "https://github.com/{{ github_org }}/${lower}.git"
+        # origin stays the read-only https clone URL set by the clone task: the VM pulls, it never pushes
+        for r in oc3 oc4 oc5 oc6 okapi; do
+          git -C {{ repo_base }}/$r config user.name "{{ git_user_name }}"
+          git -C {{ repo_base }}/$r config user.email "{{ git_user_email }}"
         done
 
     # ── DB password ─────────────────────────────────────

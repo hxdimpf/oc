@@ -1,6 +1,9 @@
 ---
 domain_suffix: "baiti.net"
 github_org: "hxdimpf"
+# Repos cloned from another GitHub org than github_org
+repo_orgs:
+  okapi: "OpencachingDeutschland"
 branch: "dev-hx"
 git_user_name: "hxdimpf"
 git_user_email: "hxdimpf@gmail.com"
