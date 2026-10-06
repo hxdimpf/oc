@@ -37,13 +37,14 @@ test_oc4() {
     check "asset $p" "$BASE$p"
   done
 
-  # Map page assets (loader.js references)
-  for p in /vendor/leaflet/leaflet.css /vendor/leaflet/leaflet.js \
-           /vendor/leaflet-draw/leaflet.draw.css /vendor/leaflet-draw/leaflet.draw.js \
-           /vendor/leaflet.markercluster/MarkerCluster.css \
-           /vendor/leaflet.markercluster/MarkerCluster.Default.css \
-           /vendor/leaflet.markercluster/leaflet.markercluster.js \
-           /css/map.css /vendor/tabulator/tabulator.min.css; do
+  # Map page assets (loader.js references) and JS module imports
+  for p in /_frontend/vendor/leaflet/leaflet.css /_frontend/vendor/leaflet/leaflet.js \
+           /_frontend/vendor/leaflet-draw/leaflet.draw.css /_frontend/vendor/leaflet-draw/leaflet.draw.js \
+           /_frontend/vendor/leaflet.markercluster/MarkerCluster.css \
+           /_frontend/vendor/leaflet.markercluster/MarkerCluster.Default.css \
+           /_frontend/vendor/leaflet.markercluster/leaflet.markercluster.js \
+           /_frontend/css/map.css /_frontend/vendor/tabulator/tabulator.min.css \
+           /_frontend/shared/coords.js; do
     check "map asset $p" "$BASE$p"
   done
 
@@ -55,6 +56,11 @@ test_oc4() {
            /images/ratings/difficulty-20.svg; do
     check "image $p" "$BASE$p"
   done
+
+  # API
+  check "page cache detail" "$BASE/cache/OC1001"
+  check "api cache" "$BASE/api/cache/OC1001"
+  check "api user home" "$BASE/api/user/home"
 }
 
 test_oc5() {
@@ -69,7 +75,7 @@ test_oc5() {
   # Static assets
   for p in /css/oc-style.css /js/loader.js /images/oclogo.png \
            /vendor/bootstrap/bootstrap.min.css /vendor/leaflet/leaflet.css \
-           /css/map.css /vendor/tabulator/tabulator.min.css; do
+           /css/map.css /vendor/tabulator/tabulator.min.css /lib/coords.js; do
     check "asset $p" "$BASE5$p"
   done
 
@@ -80,16 +86,14 @@ test_oc5() {
     check "image $p" "$BASE5$p"
   done
 
-  # Legacy _frontend image paths
-  for p in /_frontend/images/attributes/flashlight.png /_frontend/images/waypoints/wp_parking.png; do
-    check "legacy image $p" "$BASE5$p"
-  done
-
   # API
   check "api live" "$BASE5/api/caches/live?lat1=52.0&lat2=53.0&lon1=9.0&lon2=10.0&minDiff=2&maxDiff=10"
   check "api search" "$BASE5/api/caches/search?q=test"
   check "api waypoints" "$BASE5/api/caches/waypoints?wp=OC10001"
   check "api users" "$BASE5/api/users/search?q=root"
+  check "page cache detail" "$BASE5/cache/OC1001"
+  check "api cache" "$BASE5/api/cache/OC1001"
+  check "api user home" "$BASE5/api/user/home"
 }
 
 test_oc3() {

@@ -33,11 +33,11 @@ When you change a shared file, apply the same change to BOTH repos:
 | JS modules | `oc5/public/js/*.js` | `oc4/public/_frontend/js/*.js` |
 | CSS | `oc5/public/css/*.css` | `oc4/public/_frontend/css/*.css` |
 | Vendor libs | `oc5/public/vendor/**` | `oc4/public/_frontend/vendor/**` |
-| Shared utils | `oc5/public/shared/*.js` | `oc4/public/_frontend/shared/*.js` |
+| Shared utils | `oc5/public/lib/*.js` | `oc4/public/_frontend/shared/*.js` |
 
 ```
 1. Edit file in ~/src/oc5/public/js/cache.js      # primary dev target
-2. cp ~/src/oc5/public/js/cache.js ~/src/oc4/public/_frontend/js/cache.js
+2. ~/src/oc/scripts/sync-js-to-oc4.sh cache.js     # copies + rewrites asset paths (never plain cp)
 3. cd ~/src/oc5 && git add -A && git commit -m "..." && git push origin dev-hx
 4. cd ~/src/oc4 && git add -A && git commit -m "..." && git push origin dev-hx
 5. Deploy both stacks (see below)
@@ -46,7 +46,10 @@ When you change a shared file, apply the same change to BOTH repos:
 **Important:** OC5 uses `public/js/` directly. OC4 uses `public/_frontend/js/`
 (matching existing template paths). Content is identical, paths differ.
 OC4 templates reference `/_frontend/js/loader.js`, OC5 templates use `/js/loader.js`.
-OC5 also serves `/_frontend/*` as a legacy fallback.
+OC5 does NOT serve `/_frontend/*` — templates converted from OC4 must have those paths rewritten.
+
+**Map state:** templates inject no `window.*` globals. Page modules fetch their data and
+pass it to the map via `handleWPs(wps, view)` (`initPageMap(wps)` for page maps).
 
 **For Ansible playbook changes:**
 ```
@@ -105,7 +108,6 @@ Zero failures required before declaring "done".
 ### 4. Image paths
 
 Images live in `public/images/` and are served at `/images/` on both OC4 and OC5.
-OC5 also serves `/_frontend/images/` and `/_frontend/*` as legacy fallback paths.
 
 ### 5. The playbook is the source of truth
 
