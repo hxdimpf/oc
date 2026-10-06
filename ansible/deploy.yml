@@ -307,6 +307,7 @@
               environment:
                 APACHE_DOCUMENT_ROOT: /var/www/html/okapi
                 OKAPI_STANDALONE: "1"
+                OKAPI_SITE_URL: "http://okapi.{{ domain_suffix }}/"
                 OKAPI_DB_HOST: db
                 OKAPI_DB_NAME: oc
                 OKAPI_DB_USER: oc
