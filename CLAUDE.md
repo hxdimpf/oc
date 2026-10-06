@@ -1,6 +1,6 @@
 # CLAUDE.md — OC Docker Stack
 
-## Where to work: ALWAYS on your Mac in ~/src/
+## Where to work: ALWAYS on your Mac in ~/src/opencaching/
 
 **Never edit files on the server** (`ssh baiti@oc3.baiti.net`). The server is deployment target only.
 All editing, committing, and pushing happens from your Mac.
@@ -9,17 +9,17 @@ All editing, committing, and pushing happens from your Mac.
 
 | Repo | Local path | What it contains |
 |------|-----------|-----------------|
-| `hxdimpf/oc` | `~/src/oc` | Playbook, scripts, docs |
-| `hxdimpf/oc3` | `~/src/oc3` | Legacy PHP app |
-| `hxdimpf/oc4` | `~/src/oc4` | Symfony 7.x frontend |
-| `hxdimpf/oc5` | `~/src/oc5` | Node.js/Express frontend |
-| `hxdimpf/okapi` | `~/src/okapi` | OKAPI REST API |
+| `hxdimpf/oc` | `~/src/opencaching/oc` | Playbook, scripts, docs |
+| `hxdimpf/oc3` | `~/src/opencaching/oc3` | Legacy PHP app |
+| `hxdimpf/oc4` | `~/src/opencaching/oc4` | Symfony 7.x frontend |
+| `hxdimpf/oc5` | `~/src/opencaching/oc5` | Node.js/Express frontend |
+| `hxdimpf/okapi` | `~/src/opencaching/okapi` | OKAPI REST API |
 
 ### Workflow
 
 **For backend code (PHP, Node.js, templates):**
 ```
-1. cd ~/src/oc5                    # edit locally
+1. cd ~/src/opencaching/oc5                    # edit locally
 2. git add -A && git commit -m "..." && git push origin dev-hx
 3. ssh oc3 "sudo git -C /opt/repos/oc5 pull && sudo docker restart oc5-oc5-1"
 ```
@@ -36,10 +36,10 @@ When you change a shared file, apply the same change to BOTH repos:
 | Shared utils | `oc5/public/lib/*.js` | `oc4/public/_frontend/shared/*.js` |
 
 ```
-1. Edit file in ~/src/oc5/public/js/cache.js      # primary dev target
-2. ~/src/oc/scripts/sync-js-to-oc4.sh cache.js     # copies + rewrites asset paths (never plain cp)
-3. cd ~/src/oc5 && git add -A && git commit -m "..." && git push origin dev-hx
-4. cd ~/src/oc4 && git add -A && git commit -m "..." && git push origin dev-hx
+1. Edit file in ~/src/opencaching/oc5/public/js/cache.js      # primary dev target
+2. ~/src/opencaching/oc/scripts/sync-js-to-oc4.sh cache.js     # copies + rewrites asset paths (never plain cp)
+3. cd ~/src/opencaching/oc5 && git add -A && git commit -m "..." && git push origin dev-hx
+4. cd ~/src/opencaching/oc4 && git add -A && git commit -m "..." && git push origin dev-hx
 5. Deploy both stacks (see below)
 ```
 
@@ -53,7 +53,7 @@ pass it to the map via `handleWPs(wps, view)` (`initPageMap(wps)` for page maps)
 
 **For Ansible playbook changes:**
 ```
-1. cd ~/src/oc/ansible            # edit playbook or config
+1. cd ~/src/opencaching/oc/ansible            # edit playbook or config
 2. git add -A && git commit -m "..." && git push origin dev-hx
 3. ansible-playbook -i inventory.ini deploy.yml -e "db_dump_file=..."
 ```
@@ -133,7 +133,7 @@ ansible-playbook -i inventory.ini deploy.yml \
 | `hxdimpf/oc5` | Node.js/Express frontend | `dev-hx` |
 | `hxdimpf/okapi` | OKAPI REST API | `dev-hx` |
 
-Local paths: `/Users/baiti/src/oc/`, `/Users/baiti/src/oc3/`, `/Users/baiti/src/oc4/`, `/Users/baiti/src/oc5/`, `/Users/baiti/src/okapi/`
+Local paths: `/Users/baiti/src/opencaching/oc/`, `/Users/baiti/src/opencaching/oc3/`, `/Users/baiti/src/opencaching/oc4/`, `/Users/baiti/src/opencaching/oc5/`, `/Users/baiti/src/opencaching/okapi/`
 
 ## Infrastructure
 

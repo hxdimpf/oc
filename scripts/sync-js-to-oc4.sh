@@ -9,8 +9,10 @@
 
 set -euo pipefail
 
-SRC="${OC5_DIR:-$HOME/src/oc5}/public/js"
-DST="${OC4_DIR:-$HOME/src/oc4}/public/_frontend/js"
+# oc4 and oc5 are checked out next to this repo (oc/scripts/ → ../..)
+BASE="$(cd "$(dirname "$0")/../.." && pwd)"
+SRC="${OC5_DIR:-$BASE/oc5}/public/js"
+DST="${OC4_DIR:-$BASE/oc4}/public/_frontend/js"
 
 cd "$SRC"
 FILES=("$@")
