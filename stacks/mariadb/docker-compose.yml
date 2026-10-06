@@ -1,0 +1,24 @@
+# Deployed to /opt/stacks/mariadb/ by ansible/deploy.yml.
+# Values come from the .env next to this file (written by the playbook).
+name: mariadb
+services:
+  db:
+    image: mariadb:10.11
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_PASSWORD:?}
+      MARIADB_DATABASE: oc
+      MARIADB_USER: oc
+      MARIADB_PASSWORD: ${DB_PASSWORD:?}
+    volumes: [mariadb_data:/var/lib/mysql]
+    networks: [oc]
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+volumes:
+  mariadb_data:
+networks:
+  oc:
+    external: true

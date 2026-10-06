@@ -1,0 +1,20 @@
+# Deployed to /opt/stacks/oc3/ by ansible/deploy.yml.
+# Values come from the .env next to this file (written by the playbook).
+name: oc3
+services:
+  oc3:
+    image: shinsenter/php:8.2-fpm-apache
+    restart: unless-stopped
+    volumes:
+      - ${REPO_BASE:?}/oc3:/var/www/html
+      - ${REPO_BASE:?}/oc3/.docker/zzz-oc3.ini:/usr/local/etc/php/conf.d/zzz-oc3.ini:ro
+    environment:
+      OC_DB_HOST: db
+      OC_DB_NAME: oc
+      OC_DB_USER: oc
+      OC_DB_PASS: ${DB_PASSWORD:?}
+    expose: ["80"]
+    networks: [oc]
+networks:
+  oc:
+    external: true

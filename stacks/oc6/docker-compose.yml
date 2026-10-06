@@ -1,0 +1,20 @@
+# Deployed to /opt/stacks/oc6/ by ansible/deploy.yml.
+# Values come from the .env next to this file (written by the playbook).
+name: oc6
+services:
+  oc6:
+    image: oven/bun:1
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - ${REPO_BASE:?}/oc6:/app
+    command: sh -c "bun install --silent && exec bun run src/server.ts"
+    environment:
+      PORT: "3000"
+      DATABASE_URL: mysql://oc:${DB_PASSWORD:?}@db:3306/oc
+      NODE_ENV: development
+    expose: ["3000"]
+    networks: [oc]
+networks:
+  oc:
+    external: true

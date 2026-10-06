@@ -1,72 +1,48 @@
 # OC — OpenCaching Development Environment
 
-Docker Compose stack: OC3 (legacy PHP), OC4 (Symfony), OC5 (Node.js),
-OKAPI (shared API), and MariaDB. Routed through Nginx Proxy Manager.
+Dev VM with one Docker Compose stack per service, all on a shared `oc` network
+and one MariaDB. Nginx Proxy Manager routes by hostname.
 
-## Quick Start
+| Stack | Image | Routed as |
+|-------|-------|-----------|
+| oc3 | shinsenter/php:8.2-fpm-apache | `oc3.<domain>` → oc3:80 |
+| oc4 | shinsenter/php:8.4-fpm-apache | `oc4.<domain>` → oc4:80 |
+| oc5 | node:22-alpine | `oc5.<domain>` → oc5:3000 |
+| oc6 | oven/bun:1 | `oc6.<domain>` → oc6:3000 |
+| okapi | shinsenter/php:8.2-fpm-apache | `okapi.<domain>` → okapi:80 |
+| mariadb | mariadb:10.11 | not exposed |
+| npm | jc21/nginx-proxy-manager | ports 80, 443, 81 (admin) |
+| dockge | louislam/dockge | port 5001 (stacks dashboard) |
 
-```bash
-# Clone everything
-git clone git@github.com:hxdimpf/oc.git
-git clone git@github.com:hxdimpf/oc3.git ../oc3
-git clone git@github.com:hxdimpf/oc4.git ../oc4
-git clone git@github.com:hxdimpf/oc5.git ../oc5
-git clone -b oc4-combined git@github.com:hxdimpf/okapi.git ../okapi
-cd OC
+## Layout
 
-# Start infrastructure (NPM + Dockge)
-cp .env.dist .env
-# Edit .env with real passwords
-docker compose -f docker-compose.infra.yml up -d
+- `stacks/<name>/docker-compose.yml`: the compose files, deployed to `/opt/stacks/<name>/`.
+  They read `DB_PASSWORD`, `REPO_BASE` and `DOMAIN_SUFFIX` from a `.env` next to them,
+  which the playbook writes on the VM (never committed).
+- `ansible/deploy.yml`: builds the VM from scratch. It installs Docker, clones the app repos
+  into `/opt/repos/` (read-only https), copies the stacks, writes app configs, imports the
+  DB dump and sets up the proxy routes.
+- `scripts/test-deploy.sh`: smoke test for all apps. `scripts/sync-js-to-oc4.sh` copies shared JS from oc5 to oc4.
 
-# Start apps
-docker compose up -d
-```
+The app source is bind-mounted from `/opt/repos/<app>`, so a code change needs only a pull and a restart.
 
-## Architecture
+## Full rebuild (wipes the DB)
 
-```
-nginx-proxy-manager :80 :443 :81 (admin)
-    ├── oc3.baiti.net   →  oc3:80
-    ├── oc4.baiti.net   →  oc4:80
-    ├── oc5.baiti.net   →  oc5:3000
-    ├── oc6.baiti.net   →  oc6:3000
-    └── okapi.baiti.net →  okapi:80
-
-dockge :5001 (stacks dashboard)
-```
-
-## Services
-
-| Service | Stack | Exposed Port |
-|---------|-------|-------------|
-| OC3 | PHP 8.2, Smarty | 80 (internal) |
-| OC4 | PHP 8.4, Symfony 7.x | 80 (internal) |
-| OC5 | Node 22, Express | 3000 (internal) |
-| OC6 | Bun, TypeScript, Hono | 3000 (internal) |
-| OKAPI | PHP 8.2 | 80 (internal) |
-| MariaDB | 10.11 | none |
-| NPM | nginx proxy | 80, 443, 81 |
-| Dockge | compose GUI | 5001 |
-
-## Routing
-
-Routes are configured in the Nginx Proxy Manager GUI at http://<host>:81.
-Point each domain to its service:
-
-- `oc3.baiti.net` → `http://oc3:80`
-- `oc4.baiti.net` → `http://oc4:80`
-- `oc5.baiti.net` → `http://oc5:3000`
-- `okapi.baiti.net` → `http://okapi:80`
-
-## Daily workflow
+The playbook expects a clean VM. It generates a new DB password and re-imports the dump.
 
 ```bash
-cd /var/www/oc/OC
-docker compose pull       # latest images
-git pull && cd ../oc3 && git pull && cd ../oc4 && git pull && cd ../oc5 && git pull && cd ../okapi && git pull && cd ../OC
-docker compose up -d --build
+cd ansible
+ansible-playbook -i inventory.ini deploy.yml -e "db_dump_file=/path/to/dump.sql.gz"
 ```
 
-Source repos are mounted as volumes — no rebuild needed for code changes,
-only `docker compose restart <service>`.
+On an existing VM, first run `docker compose down -v` in every `/opt/stacks/*` and remove
+`/opt/stacks` and `/opt/repos`.
+
+## Code deploy
+
+```bash
+ssh oc3.baiti.net "sudo git -C /opt/repos/oc5 pull && sudo docker restart oc5-oc5-1"
+./scripts/test-deploy.sh all
+```
+
+See `CLAUDE.md` for the working rules (edit only on the Mac, oc4/oc5 dual maintenance, sessions).

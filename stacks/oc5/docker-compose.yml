@@ -1,0 +1,20 @@
+# Deployed to /opt/stacks/oc5/ by ansible/deploy.yml.
+# Values come from the .env next to this file (written by the playbook).
+name: oc5
+services:
+  oc5:
+    image: node:22-alpine
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - ${REPO_BASE:?}/oc5:/app
+    command: sh -c "npm install --silent && exec node app.js"
+    environment:
+      PORT: "3000"
+      DATABASE_URL: mysql://oc:${DB_PASSWORD:?}@db:3306/oc
+      NODE_ENV: development
+    expose: ["3000"]
+    networks: [oc]
+networks:
+  oc:
+    external: true

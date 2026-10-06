@@ -135,191 +135,22 @@
         state: directory
       loop: [dockge, npm, mariadb, oc3, oc4, oc5, oc6, okapi]
 
-    # ── Write compose files ─────────────────────────────
-    - name: Dockge compose
+    # ── Compose files (stacks/<name>/docker-compose.yml) ─
+    - name: Copy compose files
       copy:
-        dest: "{{ stacks_base }}/dockge/docker-compose.yml"
-        content: |
-          name: dockge
-          services:
-            dockge:
-              image: louislam/dockge:latest
-              restart: unless-stopped
-              ports: ["5001:5001"]
-              volumes:
-                - /var/run/docker.sock:/var/run/docker.sock:ro
-                - dockge_data:/app/data
-                - /opt/stacks:/opt/stacks:ro
-              environment:
-                DOCKGE_STACKS_DIR: /opt/stacks
-              networks: [oc]
-          volumes:
-            dockge_data:
-          networks:
-            oc:
-              external: true
+        src: "../stacks/{{ item }}/docker-compose.yml"
+        dest: "{{ stacks_base }}/{{ item }}/docker-compose.yml"
+      loop: [dockge, npm, mariadb, oc3, oc4, oc5, oc6, okapi]
 
-    - name: NPM compose
+    - name: Write per-stack .env (compose variables)
       copy:
-        dest: "{{ stacks_base }}/npm/docker-compose.yml"
+        dest: "{{ stacks_base }}/{{ item }}/.env"
+        mode: "0600"
         content: |
-          name: npm
-          services:
-            nginx-proxy-manager:
-              image: jc21/nginx-proxy-manager:latest
-              restart: unless-stopped
-              ports: ["80:80", "443:443", "81:81"]
-              volumes: [npm_data:/data, npm_letsencrypt:/etc/letsencrypt]
-              networks: [oc]
-          volumes:
-            npm_data:
-            npm_letsencrypt:
-          networks:
-            oc:
-              external: true
-
-    - name: MariaDB compose
-      copy:
-        dest: "{{ stacks_base }}/mariadb/docker-compose.yml"
-        content: |
-          name: mariadb
-          services:
-            db:
-              image: mariadb:10.11
-              restart: unless-stopped
-              environment:
-                MARIADB_ROOT_PASSWORD: {{ dbpass }}
-                MARIADB_DATABASE: oc
-                MARIADB_USER: oc
-                MARIADB_PASSWORD: {{ dbpass }}
-              volumes: [mariadb_data:/var/lib/mysql]
-              networks: [oc]
-              healthcheck:
-                test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
-                interval: 10s
-                timeout: 5s
-                retries: 5
-          volumes:
-            mariadb_data:
-          networks:
-            oc:
-              external: true
-
-    - name: OC3 compose
-      copy:
-        dest: "{{ stacks_base }}/oc3/docker-compose.yml"
-        content: |
-          name: oc3
-          services:
-            oc3:
-              image: shinsenter/php:8.2-fpm-apache
-              restart: unless-stopped
-              volumes:
-                - {{ repo_base }}/oc3:/var/www/html
-                - {{ repo_base }}/oc3/.docker/zzz-oc3.ini:/usr/local/etc/php/conf.d/zzz-oc3.ini:ro
-              environment:
-                OC_DB_HOST: db
-                OC_DB_NAME: oc
-                OC_DB_USER: oc
-                OC_DB_PASS: {{ dbpass }}
-              expose: ["80"]
-              networks: [oc]
-          networks:
-            oc:
-              external: true
-
-    - name: OC4 compose
-      copy:
-        dest: "{{ stacks_base }}/oc4/docker-compose.yml"
-        content: |
-          name: oc4
-          services:
-            oc4:
-              image: shinsenter/php:8.4-fpm-apache
-              restart: unless-stopped
-              volumes:
-                - {{ repo_base }}/oc4:/var/www/html
-              environment:
-                APACHE_DOCUMENT_ROOT: /var/www/html/public
-                APP_ENV: dev
-                APP_DEBUG: "1"
-                DATABASE_URL: mysql://oc:{{ dbpass }}@db:3306/oc?serverVersion=mariadb-10.11.16
-              expose: ["80"]
-              networks: [oc]
-          networks:
-            oc:
-              external: true
-
-    - name: OC5 compose
-      copy:
-        dest: "{{ stacks_base }}/oc5/docker-compose.yml"
-        content: |
-          name: oc5
-          services:
-            oc5:
-              image: node:22-alpine
-              restart: unless-stopped
-              working_dir: /app
-              volumes:
-                - {{ repo_base }}/oc5:/app
-              command: sh -c "npm install --silent && exec node app.js"
-              environment:
-                PORT: "3000"
-                DATABASE_URL: mysql://oc:{{ dbpass }}@db:3306/oc
-                NODE_ENV: development
-              expose: ["3000"]
-              networks: [oc]
-          networks:
-            oc:
-              external: true
-
-    - name: OC6 compose
-      copy:
-        dest: "{{ stacks_base }}/oc6/docker-compose.yml"
-        content: |
-          name: oc6
-          services:
-            oc6:
-              image: oven/bun:1
-              restart: unless-stopped
-              working_dir: /app
-              volumes:
-                - {{ repo_base }}/oc6:/app
-              command: sh -c "bun install --silent && exec bun run src/server.ts"
-              environment:
-                PORT: "3000"
-                DATABASE_URL: mysql://oc:{{ dbpass }}@db:3306/oc
-                NODE_ENV: development
-              expose: ["3000"]
-              networks: [oc]
-          networks:
-            oc:
-              external: true
-
-    - name: OKAPI compose
-      copy:
-        dest: "{{ stacks_base }}/okapi/docker-compose.yml"
-        content: |
-          name: okapi
-          services:
-            okapi:
-              image: shinsenter/php:8.2-fpm-apache
-              restart: unless-stopped
-              volumes:
-                - {{ repo_base }}/okapi:/var/www/html
-              environment:
-                APACHE_DOCUMENT_ROOT: /var/www/html/okapi
-                OKAPI_STANDALONE: "1"
-                OKAPI_SITE_URL: "http://okapi.{{ domain_suffix }}/"
-                OKAPI_DB_HOST: db
-                OKAPI_DB_NAME: oc
-                OKAPI_DB_USER: oc
-                OKAPI_DB_PASS: {{ dbpass }}
-              expose: ["80"]
-              networks: [oc]
-          networks:
-            oc:
-              external: true
+          DB_PASSWORD={{ dbpass }}
+          REPO_BASE={{ repo_base }}
+          DOMAIN_SUFFIX={{ domain_suffix }}
+      loop: [mariadb, oc3, oc4, oc5, oc6, okapi]
 
     # ── OC3 config ──────────────────────────────────────
     - name: OC3 cache directories

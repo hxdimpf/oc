@@ -1,0 +1,19 @@
+# Deployed to /opt/stacks/oc4/ by ansible/deploy.yml.
+# Values come from the .env next to this file (written by the playbook).
+name: oc4
+services:
+  oc4:
+    image: shinsenter/php:8.4-fpm-apache
+    restart: unless-stopped
+    volumes:
+      - ${REPO_BASE:?}/oc4:/var/www/html
+    environment:
+      APACHE_DOCUMENT_ROOT: /var/www/html/public
+      APP_ENV: dev
+      APP_DEBUG: "1"
+      DATABASE_URL: mysql://oc:${DB_PASSWORD:?}@db:3306/oc?serverVersion=mariadb-10.11.16
+    expose: ["80"]
+    networks: [oc]
+networks:
+  oc:
+    external: true

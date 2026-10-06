@@ -2,3 +2,4 @@
 db_data/
 ansible/files/oc_deploy_key
 ansible/files/oc_deploy_key.pub
+stacks/*/.env

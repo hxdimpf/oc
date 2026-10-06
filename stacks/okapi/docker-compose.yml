@@ -1,0 +1,22 @@
+# Deployed to /opt/stacks/okapi/ by ansible/deploy.yml.
+# Values come from the .env next to this file (written by the playbook).
+name: okapi
+services:
+  okapi:
+    image: shinsenter/php:8.2-fpm-apache
+    restart: unless-stopped
+    volumes:
+      - ${REPO_BASE:?}/okapi:/var/www/html
+    environment:
+      APACHE_DOCUMENT_ROOT: /var/www/html/okapi
+      OKAPI_STANDALONE: "1"
+      OKAPI_SITE_URL: "http://okapi.${DOMAIN_SUFFIX:?}/"
+      OKAPI_DB_HOST: db
+      OKAPI_DB_NAME: oc
+      OKAPI_DB_USER: oc
+      OKAPI_DB_PASS: ${DB_PASSWORD:?}
+    expose: ["80"]
+    networks: [oc]
+networks:
+  oc:
+    external: true
