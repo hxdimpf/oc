@@ -114,11 +114,14 @@
 
     - name: Set per-repo git identity
       shell: |
+        # repos are chowned to www-data by the app containers; root still has to pull
+        git config --global --add safe.directory '*'
         for r in OC3 OC4 oc5 oc6 okapi; do
           lower=$(echo "$r" | tr '[:upper:]' '[:lower:]')
           git -C {{ repo_base }}/$lower config user.name "{{ git_user_name }}"
           git -C {{ repo_base }}/$lower config user.email "{{ git_user_email }}"
-          git -C {{ repo_base }}/$lower remote set-url origin "git@github.com:{{ github_org }}/${r}.git" 2>/dev/null || true
+          # origin stays the read-only https clone URL: the VM pulls, it never pushes
+          git -C {{ repo_base }}/$lower remote set-url origin "https://github.com/{{ github_org }}/${lower}.git"
         done
 
     # ── DB password ─────────────────────────────────────
