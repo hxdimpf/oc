@@ -11,6 +11,7 @@ services:
       APACHE_DOCUMENT_ROOT: /var/www/html/okapi
       OKAPI_STANDALONE: "1"
       OKAPI_SITE_URL: "http://okapi.${DOMAIN_SUFFIX:?}/"
+      OKAPI_OC_URL: "http://oc3.${DOMAIN_SUFFIX:?}/"
       OKAPI_DB_HOST: db
       OKAPI_DB_NAME: oc
       OKAPI_DB_USER: oc
