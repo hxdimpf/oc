@@ -216,7 +216,7 @@
           $opt['mail']['from'] = 'noreply@test.opencaching.de';
           $opt['mail']['subject'] = '[oc3.{{ domain_suffix }}] ';
           $opt['session']['cookiename'] = 'oc3';
-          $opt['session']['domain'] = '';
+          $opt['session']['domain'] = 'oc3.{{ domain_suffix }}';
           set_absolute_urls($opt, 'http://oc3.{{ domain_suffix }}/', 'opencaching.de', 2);
           $opt['new_ui']['domain'] = 'oc4.{{ domain_suffix }}';
           $opt['debug'] = DEBUG_NO;
