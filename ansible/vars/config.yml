@@ -6,7 +6,8 @@ git_user_name: "hxdimpf"
 git_user_email: "hxdimpf@gmail.com"
 ssh_deploy_key: "files/oc_deploy_key"
 okapi_consumer_key: "veRTaTDvKWEZTxsAMPYd"
-db_dump_file: "CHANGE_ME"
+# The dev DB restored on every rebuild (development data, no production users)
+db_dump_file: "{{ playbook_dir }}/../oc_dump_20260621.sql.gz"
 target_host: "oc_test"
 # OKAPI tokens: set via environment variables or ansible-vault
 # okapi_access_token — set via OKAPI_ACCESS_TOKEN env var

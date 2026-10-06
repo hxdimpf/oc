@@ -28,11 +28,13 @@ The app source is bind-mounted from `/opt/repos/<app>`, so a code change needs o
 
 ## Full rebuild (wipes the DB)
 
-The playbook expects a clean VM. It generates a new DB password and re-imports the dump.
+The playbook expects a clean VM. It generates a new DB password and restores the dev
+database from `oc_dump_20260621.sql.gz` (a development dump with no production user data,
+set in `ansible/vars/config.yml`).
 
 ```bash
 cd ansible
-ansible-playbook -i inventory.ini deploy.yml -e "db_dump_file=/path/to/dump.sql.gz"
+ansible-playbook -i inventory.ini deploy.yml
 ```
 
 On an existing VM, first run `docker compose down -v` in every `/opt/stacks/*` and remove
