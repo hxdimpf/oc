@@ -329,6 +329,15 @@
       args:
         chdir: "{{ stacks_base }}/okapi"
 
+    # OKAPI expects okapi/cron5 to be called every 5 minutes. Without it, CheckCronTab2
+    # mails "Crontab not working" and the 5-minute jobs never run. Called inside the
+    # container, because the proxy times out on long first runs.
+    - name: OKAPI cron5
+      cron:
+        name: okapi-cron5
+        minute: "*/5"
+        job: "docker exec okapi-okapi-1 curl -s -o /dev/null -m 600 http://localhost/okapi/cron5"
+
     # OC3 composer must run inside its container (host PHP 8.4 can't satisfy OC3's 8.2 deps)
     - name: OC3 composer inside container
       shell: |

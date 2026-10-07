@@ -168,7 +168,7 @@ Even with `.baiti.net` domain cookies, the browser refuses to send them.
 Independent host-only cookies are the only reliable approach for dev.
 
 Cookie domain is EMPTY STRING in all settings:
-- OC3: `$opt['session']['domain'] = '';` in playbook-generated `settings.inc.php`
+- OC3: exception, `$opt['session']['domain'] = 'oc3.<domain>';` in playbook-generated `settings.inc.php` (only this host, like upstream sets a domain; an empty domain made OC3 log users out on every second request)
 - OC4: `null` domain in `Auth.php` Cookie constructor
 - OC5: no domain parameter in `res.cookie()` call
 

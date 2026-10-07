@@ -16,6 +16,9 @@ services:
       OKAPI_DB_NAME: oc
       OKAPI_DB_USER: oc
       OKAPI_DB_PASS: ${DB_PASSWORD:?}
+      # The image default (/dev/stdout) cannot be opened by PHP-FPM workers (/dev/stderr neither), so every
+      # mail() from OKAPI (e.g. cronjob error reports) fails and turns requests into 500s.
+      PHP_MAIL_LOG: /dev/null
     expose: ["80"]
     networks: [oc]
 networks:
