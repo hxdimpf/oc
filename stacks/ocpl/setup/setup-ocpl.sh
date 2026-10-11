@@ -4,6 +4,7 @@
 #   /opt/stacks/ocpl/setup/setup-ocpl.sh
 #
 # Steps:
+#  0. the data directory (volume) from the skeleton in the repo
 #  1. database ocpl + user ocpl in the shared MariaDB (password = DB_PASSWORD of the stack)
 #  2. schema built from the repo (docs/database, see build-schema.py) + schema-patches.sql
 #  3. static data, triggers/procedures, the default users (make-users.py), 3 test caches
@@ -19,6 +20,9 @@ dbc=${DBC:-mariadb-db-1}
 set -a; . "$stack/.env"; set +a
 
 root() { docker exec -i "$dbc" mariadb -uroot -p"$DB_PASSWORD" "$@"; }
+
+echo "== 0. data directory (skeleton from docs/ocpl-data.tar, writable for the web server)"
+docker exec -u root "$app" sh -c 'tar xf /var/www/html/docs/ocpl-data.tar -C /var/www && chown -R www-data:www-data /var/www/ocpl-data'
 
 echo "== 1. database"
 root -e "DROP DATABASE IF EXISTS ocpl; CREATE DATABASE ocpl CHARACTER SET utf8mb4;
