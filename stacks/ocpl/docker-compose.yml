@@ -1,0 +1,35 @@
+# Deployed to /opt/stacks/ocpl/ by ansible/deploy.yml.
+# Values come from the .env next to this file (written by the playbook).
+#
+# OCPL test installation: the official opencaching-pl code (read-only clone) with the
+# OKAPI checkout of the okapi stack mounted over its embedded okapi/ directory, so it
+# runs whatever OKAPI branch the VM runs. Database: "ocpl" in the shared MariaDB.
+# Setup and rebuild: setup/setup-ocpl.sh (see README.md).
+name: ocpl
+services:
+  ocpl:
+    image: shinsenter/php:8.2-fpm-apache
+    restart: unless-stopped
+    volumes:
+      - ${REPO_BASE:?}/opencaching-pl:/var/www/html:ro
+      - ${REPO_BASE:?}/okapi/okapi:/var/www/html/okapi:ro
+      # local config (mount points exist as empty gitignored files in the clone)
+      - ./settings.inc.php:/var/www/html/lib/settings.inc.php:ro
+      - ./site.local.php:/var/www/html/config/site.local.php:ro
+      - ./zzz-ocpl.ini:/usr/local/etc/php/conf.d/zzz-ocpl.ini:ro
+      - ocpl_data:/var/www/ocpl-data
+    environment:
+      OCPL_DB_HOST: db
+      OCPL_DB_NAME: ocpl
+      OCPL_DB_USER: ocpl
+      OCPL_DB_PASS: ${DB_PASSWORD:?}
+      OCPL_SITE_URL: "http://ocpl.${DOMAIN_SUFFIX:?}/"
+      # The image default (/dev/stdout) cannot be opened by PHP-FPM workers, so every mail() fails.
+      PHP_MAIL_LOG: /dev/null
+    expose: ["80"]
+    networks: [oc]
+volumes:
+  ocpl_data:
+networks:
+  oc:
+    external: true
