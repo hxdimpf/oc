@@ -12,7 +12,7 @@ foreach (DbUpdates::getAll() as $uuid => $update) {
         $update->run();
         echo "ok      $name\n";
     } catch (\Throwable $e) {
-        echo "failed  $name: " . strtok($e->getMessage(), "\n") . "\n";
+        echo "failed  $name: " . substr(preg_replace('/\s+/', ' ', $e->getMessage()), 0, 400) . "\n";
     }
 }
 DbUpdates::updateRoutines();

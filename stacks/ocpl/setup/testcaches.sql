@@ -12,5 +12,8 @@ VALUES
  (2, 'EN', '<p>Test cache for the OKAPI test suite.</p>', 'Test cache', '', NOW(), NOW(), '', UUID(), 2),
  (3, 'EN', '<p>Test event for the OKAPI test suite.</p>', 'Test event', '', NOW(), NOW(), '', UUID(), 2);
 
--- wp_gc is NOT NULL on OCPL (update 100_init enforces it); the inserts above leave it NULL
-UPDATE caches SET wp_gc = '' WHERE wp_gc IS NULL;
+-- update 100_init makes these columns NOT NULL (as on OCPL); the test data leaves them NULL
+UPDATE caches SET wp_gc = COALESCE(wp_gc, ''), wp_nc = COALESCE(wp_nc, ''), wp_ge = COALESCE(wp_ge, ''), wp_tc = COALESCE(wp_tc, '');
+UPDATE cache_logs SET text_html = COALESCE(text_html, 0);
+UPDATE user SET statpic_text = COALESCE(statpic_text, '');
+UPDATE PowerTrail_comments SET deleted = COALESCE(deleted, 0);
