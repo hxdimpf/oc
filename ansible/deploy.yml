@@ -150,14 +150,14 @@
       file:
         path: "{{ stacks_base }}/{{ item }}"
         state: directory
-      loop: [dockge, npm, mariadb, oc3, oc4, oc5, oc6, okapi, ocpl]
+      loop: [dockge, npm, mariadb, mariadb10, oc3, oc4, oc5, oc6, okapi, ocpl, ocpl10]
 
     # ── Compose files (stacks/<name>/docker-compose.yml) ─
     - name: Copy compose files
       copy:
         src: "../stacks/{{ item }}/docker-compose.yml"
         dest: "{{ stacks_base }}/{{ item }}/docker-compose.yml"
-      loop: [dockge, npm, mariadb, oc3, oc4, oc5, oc6, okapi, ocpl]
+      loop: [dockge, npm, mariadb, mariadb10, oc3, oc4, oc5, oc6, okapi, ocpl, ocpl10]
 
     - name: Write per-stack .env (compose variables)
       copy:
@@ -167,7 +167,7 @@
           DB_PASSWORD={{ dbpass }}
           REPO_BASE={{ repo_base }}
           DOMAIN_SUFFIX={{ domain_suffix }}
-      loop: [mariadb, oc3, oc4, oc5, oc6, okapi, ocpl]
+      loop: [mariadb, mariadb10, oc3, oc4, oc5, oc6, okapi, ocpl, ocpl10]
 
     - name: OCPL config and setup files
       copy:
@@ -330,6 +330,20 @@
         done
         exit 1
 
+    # MariaDB 10.0 for the ocpl10 stack (the version some OCPL nodes run)
+    - name: Start MariaDB 10.0
+      command: docker compose up -d --quiet-pull
+      args:
+        chdir: "{{ stacks_base }}/mariadb10"
+
+    - name: Wait for MariaDB 10.0 healthy
+      shell: |
+        for i in $(seq 1 60); do
+          docker inspect mariadb10-db10-1 --format '{{ '{{' }}.State.Health.Status{{ '}}' }}' 2>/dev/null | grep -q healthy && exit 0
+          sleep 2
+        done
+        exit 1
+
     - name: Start OC3
       command: docker compose up -d --quiet-pull
       args:
@@ -360,6 +374,11 @@
       args:
         chdir: "{{ stacks_base }}/ocpl"
 
+    - name: Start OCPL on MariaDB 10.0
+      command: docker compose up -d --quiet-pull
+      args:
+        chdir: "{{ stacks_base }}/ocpl10"
+
     # OKAPI expects okapi/cron5 to be called every 5 minutes. Without it, CheckCronTab2
     # mails "Crontab not working" and the 5-minute jobs never run. Called inside the
     # container, because the proxy times out on long first runs.
@@ -374,6 +393,12 @@
         name: ocpl-okapi-cron5
         minute: "*/5"
         job: "docker exec ocpl-ocpl-1 curl -s -o /dev/null -m 600 http://localhost/okapi/cron5"
+
+    - name: OCPL 10.0 OKAPI cron5
+      cron:
+        name: ocpl10-okapi-cron5
+        minute: "*/5"
+        job: "docker exec ocpl10-ocpl10-1 curl -s -o /dev/null -m 600 http://localhost/okapi/cron5"
 
     # OC3 composer must run inside its container (host PHP 8.4 can't satisfy OC3's 8.2 deps)
     - name: OC3 composer inside container
@@ -473,6 +498,7 @@
             ('oc6', 'oc6.{{ domain_suffix }}', 3000),
             ('okapi', 'okapi.{{ domain_suffix }}', 80),
             ('ocpl', 'ocpl.{{ domain_suffix }}', 80),
+            ('ocpl10', 'ocpl10.{{ domain_suffix }}', 80),
         ]
         for host, domain, port in hosts:
             db.execute('INSERT INTO proxy_host (created_on,modified_on,owner_user_id,domain_names,forward_host,forward_port,forward_scheme,enabled,meta,advanced_config) VALUES (datetime(\"now\"),datetime(\"now\"),1,?,?,?,\"http\",1,\"{}\",\"\")', (json.dumps([domain]), host, port))
@@ -490,6 +516,17 @@
       debug:
         var: ocpl_setup.stdout_lines
 
+    # ocpl10 (MariaDB 10.0) is built from OCPL's devel dump (downloaded once, 282 MB)
+    - name: OCPL 10.0 database, OKAPI and test user
+      shell: |
+        until docker exec ocpl10-ocpl10-1 php -r "echo 1;" 2>/dev/null; do sleep 2; done
+        {{ stacks_base }}/ocpl/setup/setup-ocpl10.sh --dump
+      register: ocpl10_setup
+
+    - name: Show OCPL 10.0 setup
+      debug:
+        var: ocpl10_setup.stdout_lines
+
     - name: Regenerate NPM config
       shell: echo y | docker exec -i npm-nginx-proxy-manager-1 node scripts/regenerate-config 2>/dev/null
 
@@ -503,7 +540,7 @@
     # ── Verification ────────────────────────────────────
     - name: Test all services
       shell: |
-        for host in oc3 oc4 oc5 oc6 okapi ocpl; do
+        for host in oc3 oc4 oc5 oc6 okapi ocpl ocpl10; do
           code=$(curl -sk -o /dev/null -w "%{http_code}" -H "Host: $host.{{ domain_suffix }}" http://localhost/)
           echo "$host: HTTP $code"
         done

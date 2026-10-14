@@ -3,6 +3,7 @@
 # WIPES the ocpl database. Run on the VM as root:
 #   /opt/stacks/ocpl/setup/setup-ocpl.sh          # schema built from the repo docs
 #   /opt/stacks/ocpl/setup/setup-ocpl.sh --dump   # OCPL's official devel dump
+#   /opt/stacks/ocpl/setup/setup-ocpl10.sh --dump # the same in the ocpl10 stack on MariaDB 10.0
 #
 # Steps:
 #  0. the data directory (volume) from the skeleton in the repo
@@ -21,15 +22,19 @@
 #     (without --dump: user 2 "ocuser"; with --dump: a new user "okapitest")
 set -euo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
-stack=$(dirname "$here")
+# The defaults build the ocpl stack; setup-ocpl10.sh sets these for the ocpl10 stack (MariaDB 10.0).
+stack=${STACK:-$(dirname "$here")}
+cache=${CACHE:-$stack/cache}
 repo=${REPO:-/opt/repos/opencaching-pl}
 app=${APP:-ocpl-ocpl-1}
 dbc=${DBC:-mariadb-db-1}
+client=${DB_CLIENT:-mariadb}     # MariaDB 10.0 has only "mysql"
+site=${SITE:-ocpl}
 set -a; . "$stack/.env"; set +a
 mode=${1:-}
 dump_url=https://s3api.zylowski.net/public/ocpl_devel_dump-2018.sql.gz
 
-root() { docker exec -i "$dbc" mariadb -uroot -p"$DB_PASSWORD" "$@"; }
+root() { docker exec -i "$dbc" "$client" -uroot -p"$DB_PASSWORD" "$@"; }
 
 echo "== 0. data directory (skeleton from docs/ocpl-data.tar, writable for the web server)"
 # Start empty: OCPL also keeps its DB update history as files in ocpl-data/db_update_history;
@@ -37,17 +42,17 @@ echo "== 0. data directory (skeleton from docs/ocpl-data.tar, writable for the w
 docker exec -u root "$app" sh -c 'mkdir -p /var/www/ocpl-data && find /var/www/ocpl-data -mindepth 1 -delete && tar xf /var/www/html/docs/ocpl-data.tar -C /var/www && chown -R www-data:www-data /var/www/ocpl-data'
 
 echo "== 1. database"
+# GRANT ... IDENTIFIED BY creates the user or resets its password, also on MariaDB 10.0
+# (which has neither CREATE USER IF NOT EXISTS nor ALTER USER)
 root -e "DROP DATABASE IF EXISTS ocpl; CREATE DATABASE ocpl CHARACTER SET utf8mb4;
-  CREATE USER IF NOT EXISTS 'ocpl'@'%' IDENTIFIED BY '$DB_PASSWORD';
-  ALTER USER 'ocpl'@'%' IDENTIFIED BY '$DB_PASSWORD';
-  GRANT ALL ON ocpl.* TO 'ocpl'@'%'; GRANT SUPER ON *.* TO 'ocpl'@'%';"
+  GRANT ALL ON ocpl.* TO 'ocpl'@'%' IDENTIFIED BY '$DB_PASSWORD'; GRANT SUPER ON *.* TO 'ocpl'@'%';"
 
 if [ "$mode" = "--dump" ]; then
 
 echo "== 2. devel dump"
-dump="$stack/cache/$(basename "$dump_url")"
+dump="$cache/$(basename "$dump_url")"
 if [ ! -f "$dump" ]; then
-    mkdir -p "$stack/cache"
+    mkdir -p "$cache"
     curl -fsSL -o "$dump.part" "$dump_url" && mv "$dump.part" "$dump"
 fi
 # the dump's triggers are defined by root@localhost: let them belong to the importing user
@@ -96,6 +101,6 @@ root ocpl -e "INSERT INTO okapi_consumers (\`key\`,name,secret,email,date_create
 umask 077
 cat > "$stack/okapi-test-credentials" <<EOT
 // for okapi/tests/config.js, targets:
-ocpl: { baseUrl: 'http://ocpl.$DOMAIN_SUFFIX', consumerKey: '$ck', consumerSecret: '$cs', accessToken: '$tk', tokenSecret: '$ts', allowWrite: true },
+$site: { baseUrl: 'http://$site.$DOMAIN_SUFFIX', consumerKey: '$ck', consumerSecret: '$cs', accessToken: '$tk', tokenSecret: '$ts', allowWrite: true },
 EOT
 echo "written: $stack/okapi-test-credentials"

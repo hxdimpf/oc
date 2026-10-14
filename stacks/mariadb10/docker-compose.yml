@@ -1,0 +1,24 @@
+# Deployed to /opt/stacks/mariadb10/ by ansible/deploy.yml.
+# Values come from the .env next to this file (written by the playbook).
+#
+# MariaDB 10.0, the version OCPL's OCRO, OCNL and OCUS nodes run (2026), for the
+# ocpl10 stack. The service is called db10: "db" on the shared network is the 10.11 server.
+name: mariadb10
+services:
+  db10:
+    image: mariadb:10.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:?}
+    volumes: [mariadb10_data:/var/lib/mysql]
+    networks: [oc]
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+volumes:
+  mariadb10_data:
+networks:
+  oc:
+    external: true

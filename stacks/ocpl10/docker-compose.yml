@@ -1,0 +1,32 @@
+# Deployed to /opt/stacks/ocpl10/ by ansible/deploy.yml.
+# Values come from the .env next to this file (written by the playbook).
+#
+# A second OCPL test installation, the same as the ocpl stack (same code, same OKAPI
+# checkout, the same config files from ../ocpl), but on MariaDB 10.0 (stack mariadb10),
+# the version some OCPL nodes run. Setup: ../ocpl/setup/setup-ocpl10.sh --dump
+name: ocpl10
+services:
+  ocpl10:
+    image: shinsenter/php:8.2-fpm-apache
+    restart: unless-stopped
+    volumes:
+      - ${REPO_BASE:?}/opencaching-pl:/var/www/html:ro
+      - ${REPO_BASE:?}/okapi/okapi:/var/www/html/okapi:ro
+      - ../ocpl/settings.inc.php:/var/www/html/lib/settings.inc.php:ro
+      - ../ocpl/site.local.php:/var/www/html/config/site.local.php:ro
+      - ../ocpl/zzz-ocpl.ini:/usr/local/etc/php/conf.d/zzz-ocpl.ini:ro
+      - ocpl10_data:/var/www/ocpl-data
+    environment:
+      OCPL_DB_HOST: db10
+      OCPL_DB_NAME: ocpl
+      OCPL_DB_USER: ocpl
+      OCPL_DB_PASS: ${DB_PASSWORD:?}
+      OCPL_SITE_URL: "http://ocpl10.${DOMAIN_SUFFIX:?}/"
+      PHP_MAIL_LOG: /dev/null
+    expose: ["80"]
+    networks: [oc]
+volumes:
+  ocpl10_data:
+networks:
+  oc:
+    external: true
