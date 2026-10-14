@@ -32,7 +32,9 @@ dump_url=https://s3api.zylowski.net/public/ocpl_devel_dump-2018.sql.gz
 root() { docker exec -i "$dbc" mariadb -uroot -p"$DB_PASSWORD" "$@"; }
 
 echo "== 0. data directory (skeleton from docs/ocpl-data.tar, writable for the web server)"
-docker exec -u root "$app" sh -c 'tar xf /var/www/html/docs/ocpl-data.tar -C /var/www && chown -R www-data:www-data /var/www/ocpl-data'
+# Start empty: OCPL also keeps its DB update history as files in ocpl-data/db_update_history;
+# files left from an earlier build would make it skip updates on the fresh database.
+docker exec -u root "$app" sh -c 'mkdir -p /var/www/ocpl-data && find /var/www/ocpl-data -mindepth 1 -delete && tar xf /var/www/html/docs/ocpl-data.tar -C /var/www && chown -R www-data:www-data /var/www/ocpl-data'
 
 echo "== 1. database"
 root -e "DROP DATABASE IF EXISTS ocpl; CREATE DATABASE ocpl CHARACTER SET utf8mb4;
